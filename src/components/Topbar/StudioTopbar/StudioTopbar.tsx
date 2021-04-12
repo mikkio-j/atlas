@@ -23,6 +23,10 @@ import {
   AvatarPlaceholder,
 } from './StudioTopbar.style'
 
+type StudioTopbarProps = {
+  hideChannelInfo?: boolean
+}
+
 type ChannelInfoProps = {
   active?: boolean
   memberName?: string
@@ -47,7 +51,7 @@ type NavDrawerProps = {
   handleClose: () => void
 }
 
-const StudioTopbar: React.FC = () => {
+const StudioTopbar: React.FC<StudioTopbarProps> = ({ hideChannelInfo }) => {
   const { activeUser, setActiveChannel } = useActiveUser()
   const { membership, loading, error } = useMembership(
     {
@@ -112,25 +116,27 @@ const StudioTopbar: React.FC = () => {
   return (
     <>
       <StyledTopbarBase variant="studio">
-        <StudioTopbarContainer>
-          <IconButton onClick={handleAddVideoViewOpen}>
-            <SvgGlyphAddVideo />
-          </IconButton>
-          {loading ? (
-            <ChannelInfoPlaceholder />
-          ) : membership?.channels.length ? (
-            <ChannelInfo channel={currentChannel} memberName={membership.handle} onClick={handleDrawerToggle} />
-          ) : (
-            <ChannelInfoContainer onClick={handleDrawerToggle}>
-              <NewChannelAvatar newChannel size="small" />
-              <TextContainer>
-                <Text>New Channel</Text>
-                <Text>{membership?.handle}</Text>
-              </TextContainer>
-            </ChannelInfoContainer>
-          )}
-          <ExpandButton expanded={isDrawerActive} onClick={handleDrawerToggle} />
-        </StudioTopbarContainer>
+        {!hideChannelInfo && (
+          <StudioTopbarContainer>
+            <IconButton onClick={handleAddVideoViewOpen}>
+              <SvgGlyphAddVideo />
+            </IconButton>
+            {loading ? (
+              <ChannelInfoPlaceholder />
+            ) : membership?.channels.length ? (
+              <ChannelInfo channel={currentChannel} memberName={membership.handle} onClick={handleDrawerToggle} />
+            ) : (
+              <ChannelInfoContainer onClick={handleDrawerToggle}>
+                <NewChannelAvatar newChannel size="small" />
+                <TextContainer>
+                  <Text>New Channel</Text>
+                  <Text>{membership?.handle}</Text>
+                </TextContainer>
+              </ChannelInfoContainer>
+            )}
+            <ExpandButton expanded={isDrawerActive} onClick={handleDrawerToggle} />
+          </StudioTopbarContainer>
+        )}
       </StyledTopbarBase>
       <NavDrawer
         ref={drawerRef}
