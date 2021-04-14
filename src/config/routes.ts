@@ -30,7 +30,18 @@ export const relativeRoutes = {
     editChannel: () => 'channel',
     videos: () => 'videos',
     uploads: () => 'uploads',
-    signIn: () => 'signIn',
+    signIn: () => 'signin',
+    join: ({ step }: { step?: string } = {}) => {
+      const basePath = 'signin/join'
+
+      if (step) {
+        const stepParams = new URLSearchParams()
+        stepParams.set(QUERY_PARAMS.JOIN, step.trim())
+        return `${basePath}?${stepParams.toString()}`
+      }
+
+      return basePath
+    },
     newMembership: () => 'membership/new',
     selectMembership: () => 'memberships',
   },
@@ -54,4 +65,5 @@ export const absoluteRoutes = Object.entries(BASE_PATHS).reduce((absoluteRoutesA
 
 export const QUERY_PARAMS = {
   SEARCH: 'query',
+  JOIN: 'step',
 }

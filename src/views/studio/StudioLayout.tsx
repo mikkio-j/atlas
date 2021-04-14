@@ -28,7 +28,6 @@ import {
 } from '@/components'
 
 import SignInView from './SignInView'
-import SelectMembershipView from './SelectMembershipView'
 import CreateMemberView from './CreateMemberView'
 
 const studioRoutes = [
@@ -36,7 +35,6 @@ const studioRoutes = [
   { path: relativeRoutes.studio.editChannel(), element: <CreateEditChannelView /> },
   { path: relativeRoutes.studio.videos(), element: <MyVideosView /> },
   { path: relativeRoutes.studio.signIn(), element: <SignInView /> },
-  { path: relativeRoutes.studio.selectMembership(), element: <SelectMembershipView /> },
   { path: relativeRoutes.studio.newMembership(), element: <CreateMemberView /> },
   { path: relativeRoutes.studio.uploads(), element: <MyUploadsView /> },
 ]
@@ -70,7 +68,7 @@ const StudioLayout = () => {
       return
     }
     if (!extensionConnected) {
-      navigate(absoluteRoutes.studio.signIn())
+      navigate(absoluteRoutes.studio.join())
     }
   }, [extensionConnected, extensionConnectionLoading, navigate])
 
@@ -78,7 +76,11 @@ const StudioLayout = () => {
     if (activeUserLoading || channelId || !extensionConnected) {
       return
     }
-    if (!accountId || !memberId) {
+    if (!accountId) {
+      navigate(absoluteRoutes.studio.join({ step: '2' }))
+      return
+    }
+    if (!memberId) {
       navigate(absoluteRoutes.studio.signIn())
     }
   }, [accountId, activeUserLoading, channelId, extensionConnected, memberId, navigate])
