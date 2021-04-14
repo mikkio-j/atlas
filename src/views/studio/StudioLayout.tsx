@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Route, Routes } from 'react-router'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { web3Enable } from '@polkadot/extension-dapp'
 import styled from '@emotion/styled'
 import { ErrorBoundary } from '@sentry/react'
 
@@ -14,8 +13,9 @@ import {
   SnackbarProvider,
   useConnectionStatus,
   useActiveUser,
+  useJoystream,
 } from '@/hooks'
-import { useMembership, useMemberships } from '@/api/hooks'
+import { useMembership } from '@/api/hooks'
 
 import { relativeRoutes, absoluteRoutes } from '@/config/routes'
 import {
@@ -46,15 +46,14 @@ const StudioLayout = () => {
   const location = useLocation()
   const { isUserConnectedToInternet, nodeConnectionStatus } = useConnectionStatus()
   const [enterLocation] = useState(location.pathname)
-  const [extensionLoading, setExtensionLoading] = useState(true)
-  const [extensionConnected, setExtensionConnected] = useState(false)
-  // const { accounts, joystream, extensionConnected } = useJoystream()
+  const { extensionConnected, extensionConnectionLoading } = useJoystream()
+
   const {
     activeUser: { accountId, memberId, channelId },
     setActiveChannel,
     loading: activeUserLoading,
   } = useActiveUser()
-  const { membership, loading: membershipLoading, error } = useMembership(
+  const { membership, loading: membershipLoading, error: membershipError } = useMembership(
     {
       where: { id: memberId },
     },
@@ -62,61 +61,26 @@ const StudioLayout = () => {
       skip: !memberId,
     }
   )
-  const { memberships, loading: membershipsLoading, error: membershipsError } = useMemberships(
-    { where: { controllerAccount_eq: accountId } },
-    {
-      skip: !accountId,
-    }
-  )
+
+  const authenticated = !!accountId && !!memberId && !!channelId && extensionConnected
 
   useEffect(() => {
-    if (location.pathname === '/studio/') {
-      navigate(absoluteRoutes.studio.videos())
-    }
-  }, [location, navigate])
-
-  useEffect(() => {
-    if (extensionConnected) {
+    if (extensionConnectionLoading) {
       return
     }
-    const getExtension = async () => {
-      const extensions = await web3Enable('Joystream Atlas')
-      setExtensionLoading(false)
-      if (!extensions.length) {
-        navigate(absoluteRoutes.studio.signIn())
-      } else {
-        setExtensionConnected(true)
-      }
+    if (!extensionConnected) {
+      navigate(absoluteRoutes.studio.signIn())
     }
-    getExtension()
-  }, [extensionConnected, navigate])
+  }, [extensionConnected, extensionConnectionLoading, navigate])
 
   useEffect(() => {
     if (activeUserLoading || channelId || !extensionConnected) {
       return
     }
-    if (!accountId) {
+    if (!accountId || !memberId) {
       navigate(absoluteRoutes.studio.signIn())
-      return
     }
-    if (!memberId) {
-      if (membershipsLoading) {
-        return
-      }
-      if (memberships?.length) {
-        navigate(absoluteRoutes.studio.selectMembership())
-      }
-    }
-  }, [
-    accountId,
-    activeUserLoading,
-    channelId,
-    extensionConnected,
-    memberId,
-    memberships?.length,
-    membershipsLoading,
-    navigate,
-  ])
+  }, [accountId, activeUserLoading, channelId, extensionConnected, memberId, navigate])
 
   useEffect(() => {
     if (activeUserLoading || channelId || !extensionConnected || !memberId || !accountId) {
@@ -144,11 +108,22 @@ const StudioLayout = () => {
     setActiveChannel,
   ])
 
+  useEffect(() => {
+    if (activeUserLoading || !authenticated) {
+      return
+    }
+    if (location.pathname === '/studio/') {
+      navigate(absoluteRoutes.studio.videos())
+    }
+  }, [activeUserLoading, authenticated, location, navigate])
+
+  if (membershipError) {
+    throw membershipError
+  }
+
   // TODO: add route transition
   // TODO: remove dependency on PersonalDataProvider
   //  we need PersonalDataProvider because Sidenav depends on it for FollowedChannel
-
-  const authenticated = !!accountId && !!memberId && !!channelId
 
   return (
     <>
@@ -158,7 +133,7 @@ const StudioLayout = () => {
       />
       <StudioTopbar hideChannelInfo={!authenticated} />
       {authenticated && <StudioSidenav />}
-      {extensionLoading ? (
+      {extensionConnectionLoading ? (
         <LoadingStudio />
       ) : (
         <MainContainer>
