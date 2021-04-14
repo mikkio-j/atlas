@@ -45,7 +45,6 @@ const StudioLayout = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { isUserConnectedToInternet, nodeConnectionStatus } = useConnectionStatus()
-  const [enterLocation] = useState(location.pathname)
   const { extensionConnected, extensionConnectionLoading } = useJoystream()
 
   const {
@@ -61,6 +60,8 @@ const StudioLayout = () => {
       skip: !memberId,
     }
   )
+
+  const [enterLocation] = useState(location.pathname)
 
   const authenticated = !!accountId && !!memberId && !!channelId && extensionConnected
 
@@ -86,6 +87,9 @@ const StudioLayout = () => {
     if (activeUserLoading || channelId || !extensionConnected || !memberId || !accountId) {
       return
     }
+
+    // TODO add lastChannelId and setting that to activeChannel
+
     if (membershipLoading) {
       return
     }
@@ -123,7 +127,7 @@ const StudioLayout = () => {
 
   // TODO: add route transition
   // TODO: remove dependency on PersonalDataProvider
-  //  we need PersonalDataProvider because Sidenav depends on it for FollowedChannel
+  //  we need PersonalDataProvider because DismissibleMessage in video drafts depends on it
 
   return (
     <>
