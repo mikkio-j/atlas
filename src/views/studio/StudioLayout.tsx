@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Route, Routes } from 'react-router'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import styled from '@emotion/styled'
 import { ErrorBoundary } from '@sentry/react'
 
@@ -25,25 +25,27 @@ import {
   NoConnectionIndicator,
   TOP_NAVBAR_HEIGHT,
   LoadingStudio,
+  PrivateRoute,
 } from '@/components'
 
 import SignInView from './SignInView'
 import CreateMemberView from './CreateMemberView'
 
 const studioRoutes = [
+  { path: relativeRoutes.studio.index(), element: <LoadingStudio /> },
   { path: relativeRoutes.studio.newChannel(), element: <CreateEditChannelView newChannel /> },
   { path: relativeRoutes.studio.editChannel(), element: <CreateEditChannelView /> },
   { path: relativeRoutes.studio.videos(), element: <MyVideosView /> },
   { path: relativeRoutes.studio.signIn(), element: <SignInView /> },
+  { path: relativeRoutes.studio.join(), element: <div>Join</div> },
   { path: relativeRoutes.studio.newMembership(), element: <CreateMemberView /> },
   { path: relativeRoutes.studio.uploads(), element: <MyUploadsView /> },
 ]
 
 const StudioLayout = () => {
   const navigate = useNavigate()
-  const location = useLocation()
   const { isUserConnectedToInternet, nodeConnectionStatus } = useConnectionStatus()
-  const { extensionConnected, extensionConnectionLoading } = useJoystream()
+  const { extensionConnected: extensionStatus } = useJoystream()
 
   const {
     activeUser: { accountId, memberId, channelId },
@@ -59,36 +61,39 @@ const StudioLayout = () => {
     }
   )
 
-  const [enterLocation] = useState(location.pathname)
+  const [channelLoading, setChannelLoading] = useState(false)
+  const extensionConnectionLoading = extensionStatus === null
+  const extensionConnected = extensionStatus === true
 
-  const authenticated = !!accountId && !!memberId && !!channelId && extensionConnected
+  const hasAccountId = !!accountId && !memberId && extensionConnected
+  const hasMemberId = !!accountId && !!memberId && extensionConnected
+  const hasChannelId = !!accountId && !!memberId && !!channelId && extensionConnected
+
+  const extensionRoute = extensionConnected ? absoluteRoutes.studio.join({ step: '2' }) : absoluteRoutes.studio.join()
+  const accountRoute = hasAccountId ? absoluteRoutes.studio.signIn() : extensionRoute
+  const channelRoute = hasChannelId ? absoluteRoutes.studio.videos() : accountRoute
+
+  const authedStudioRoutes = studioRoutes.map((route) => {
+    if (route.path === relativeRoutes.studio.index()) {
+      return { ...route, isAuth: false, redirectTo: channelRoute }
+    }
+    if (route.path === relativeRoutes.studio.signIn() || route.path === relativeRoutes.studio.newMembership()) {
+      return { ...route, isAuth: hasAccountId, redirectTo: extensionRoute }
+    }
+
+    if (route.path === relativeRoutes.studio.join()) {
+      return { ...route }
+    }
+
+    return { ...route, isAuth: hasMemberId, redirectTo: accountRoute }
+  })
 
   useEffect(() => {
-    if (extensionConnectionLoading) {
+    if (activeUserLoading || !extensionConnected || channelId || !memberId || !accountId) {
       return
     }
-    if (!extensionConnected) {
-      navigate(absoluteRoutes.studio.join())
-    }
-  }, [extensionConnected, extensionConnectionLoading, navigate])
 
-  useEffect(() => {
-    if (activeUserLoading || channelId || !extensionConnected) {
-      return
-    }
-    if (!accountId) {
-      navigate(absoluteRoutes.studio.join({ step: '2' }))
-      return
-    }
-    if (!memberId) {
-      navigate(absoluteRoutes.studio.signIn())
-    }
-  }, [accountId, activeUserLoading, channelId, extensionConnected, memberId, navigate])
-
-  useEffect(() => {
-    if (activeUserLoading || channelId || !extensionConnected || !memberId || !accountId) {
-      return
-    }
+    setChannelLoading(true)
 
     // TODO add lastChannelId and setting that to activeChannel
 
@@ -97,15 +102,18 @@ const StudioLayout = () => {
     }
     if (!membership?.channels.length) {
       navigate(absoluteRoutes.studio.newChannel())
+      setChannelLoading(false)
       return
     }
-    setActiveChannel(membership.channels[0].id)
-    navigate(enterLocation)
+    const setChannel = async () => {
+      await setActiveChannel(membership.channels[0].id)
+      setChannelLoading(false)
+    }
+    setChannel()
   }, [
     accountId,
     activeUserLoading,
     channelId,
-    enterLocation,
     extensionConnected,
     memberId,
     membership,
@@ -113,15 +121,6 @@ const StudioLayout = () => {
     navigate,
     setActiveChannel,
   ])
-
-  useEffect(() => {
-    if (activeUserLoading || !authenticated) {
-      return
-    }
-    if (location.pathname === '/studio/') {
-      navigate(absoluteRoutes.studio.videos())
-    }
-  }, [activeUserLoading, authenticated, location, navigate])
 
   if (membershipError) {
     throw membershipError
@@ -137,9 +136,9 @@ const StudioLayout = () => {
         nodeConnectionStatus={nodeConnectionStatus}
         isConnectedToInternet={isUserConnectedToInternet}
       />
-      <StudioTopbar hideChannelInfo={!authenticated} />
-      {authenticated && <StudioSidenav />}
-      {extensionConnectionLoading ? (
+      <StudioTopbar hideChannelInfo={!hasChannelId} />
+      {hasChannelId && <StudioSidenav />}
+      {extensionConnectionLoading || channelLoading ? (
         <LoadingStudio />
       ) : (
         <MainContainer>
@@ -150,8 +149,8 @@ const StudioLayout = () => {
             }}
           >
             <Routes>
-              {studioRoutes.map((route) => (
-                <Route key={route.path} {...route} />
+              {authedStudioRoutes.map((route) => (
+                <PrivateRoute key={route.path} {...route} />
               ))}
             </Routes>
           </ErrorBoundary>
@@ -167,7 +166,7 @@ const MainContainer = styled.main`
   margin-left: var(--sidenav-collapsed-width);
 `
 
-const StudioLayoutWrapper = () => {
+const StudioLayoutWrapper: React.FC = () => {
   return (
     <SnackbarProvider>
       <DraftsProvider>
