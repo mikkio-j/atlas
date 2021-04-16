@@ -4,7 +4,7 @@ import { useActiveUser } from '@/hooks'
 import { BasicMembershipFieldsFragment, BasicChannelFieldsFragment } from '@/api/queries'
 import { Button, RadioButton } from '@/shared/components'
 
-const account = 'POLKADOT_ACCOUNT'
+const account = '5HYySFRdS6993Fxsv5tPR3Vu5Cj5db4YghNJfYG14NR4CprA'
 
 const PlaygroundMemberChannel = () => {
   const [selectedChannel, setSelectedChannel] = useState<BasicChannelFieldsFragment>()

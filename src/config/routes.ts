@@ -44,6 +44,7 @@ export const relativeRoutes = {
     },
     newMembership: () => 'membership/new',
     selectMembership: () => 'memberships',
+    firstChannel: () => 'signin/new-channel',
   },
   playground: {
     index: () => '',

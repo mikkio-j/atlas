@@ -215,6 +215,7 @@ export class JoystreamJs {
       size: new U64(this.api.registry, size),
       ipfs_content_id: new Bytes(this.api.registry, ipfsContentId),
     })
+    content.ipfs_content_id.toString()
     return new NewAsset(this.api.registry, { upload: content })
   }
 

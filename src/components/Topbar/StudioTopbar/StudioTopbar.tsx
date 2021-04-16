@@ -22,6 +22,7 @@ import {
   StyledLink,
   AvatarPlaceholder,
 } from './StudioTopbar.style'
+import { setActiveUser } from '@/hooks/useActiveUser/utils'
 
 type StudioTopbarProps = {
   hideChannelInfo?: boolean
@@ -78,6 +79,11 @@ const StudioTopbar: React.FC<StudioTopbarProps> = ({ hideChannelInfo }) => {
 
   const handleLogout = () => {
     // TODO add logic for Logout
+    setActiveUser({
+      accountId: null,
+      memberId: null,
+      channelId: null,
+    })
     setDrawerActive(false)
   }
 
